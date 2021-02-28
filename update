@@ -1,0 +1,71 @@
+#!/bin/bash
+
+. ~/libs/sh/colors.sh
+
+## Run yay update repos, and system
+## installs updates as needed
+printf "${BGreen}Running full system update${Color_Off}\n"
+yay -Syyuu --noconfirm
+sleep 5
+
+## Update npm
+printf "${BGreen}Updating npm globally${Color_Off}\n"
+sudo npm i -g npm
+sleep 5
+
+## Update electron-nightly
+printf "${BGreen}Updating electron-nightly globally${Color_Off}\n"
+sudo npm i -g electron-nightly
+sleep 5
+
+## Update vlang to the current working
+## version.
+printf "${BGreen}Updating vlang${Color_Off}\n"
+v up
+sleep 5
+
+## If Rustfmt is available this
+## installs it if it isn't installed
+## and updates Rust
+inRustfmt() {
+	printf "${BGreen}Rustfmt available${Color_Off}\n"
+	in=$(rustup component list | grep rustfmt | awk '{print $2}')
+	if [[ $in -eq "(installed)" ]]
+	then
+		printf "${BGreen}Rustfmt is installed...updating Rust${Color_Off}\n"
+		sleep 5
+		rustup update
+	else
+		printf "${BGreen}Rustfmt is not installed, installing rustfmt, then updating Rust${Color_Off}\n"
+		sleep 5
+		rustup component add rustfmt && rustup update
+	fi
+}
+
+## If Rustfmt isn't available this
+## removes it if it is installed
+## and then updates Rust
+outRustfmt() {
+	printf "${BRed}Rustfmt is unavailable at this time${Color_Off}\n"
+	in=$(rustup component list | grep rustfmt | awk '{print $2}')
+	if [[ $in -eq "(installed)" ]]
+	then
+		printf "${BRed}Rustfmt is installed...removing Rustfmt then updating Rust${Color_Off}\n"
+		sleep 5
+		rustup component remove rustfmt && rustup update
+	else
+		printf "${BRed}Rustfmt is not installed...updating Rust${Color_Off}\n"
+		sleep 5
+		rustup update
+	fi
+}
+
+rustup component list | grep rustfmt
+if [[ $? -eq 0 ]]
+then
+	inRustfmt	
+else
+	outRustfmt
+fi
+
+printf "${BGreen}Rust has been successfully updated${Color_Off}\n"
