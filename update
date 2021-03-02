@@ -4,25 +4,94 @@
 
 ## Run yay update repos, and system
 ## installs updates as needed
-printf "${BGreen}Running full system update${Color_Off}\n"
-yay -Syyuu --noconfirm
-sleep 5
+systemUpdate() {
+	printf "${BGreen}Running full system update${Color_Off}\n"
+	yay -Syyuu --noconfirm
+	sleep 5
+}
 
-## Update npm
-printf "${BGreen}Updating npm globally${Color_Off}\n"
-sudo npm i -g npm
-sleep 5
+## Yay check
+yayCheck() {
+	yay --version
+	if [[ $? -eq 0 ]]
+	then
+		printf "${BGreen}Yay is installed, updating system software${Color_Off}\n"
+		systemUpdate
+	else
+		printf "${BRed}Yay is not installed, defaulting to Pacman for update${Color_Off}\n"
+		sudo pacman -Syyuu --noconfirm
+	fi
+}
 
 ## Update electron-nightly
-printf "${BGreen}Updating electron-nightly globally${Color_Off}\n"
-sudo npm i -g electron-nightly
-sleep 5
+electronUpdate() {
+	printf "${BGreen}Updating electron-nightly globally${Color_Off}\n"
+	sudo npm i -g electron-nightly
+	sleep 5
+}
 
-## Update vlang to the current working
-## version.
-printf "${BGreen}Updating vlang${Color_Off}\n"
-v up
-sleep 5
+electronCheck() {
+	electron --version
+	if [[ $? -eq 0 ]]
+	then
+		printf "${BGreen}Electron nightly is installed, updating${Color_Off}\n"
+		electronUpdate
+	else
+		printf "${BRed}Electron nightly is not installed, installing globally${Color_Off}\n"
+		electronUpdate
+	fi
+}
+
+## Update npm
+npmUpdate() {
+	printf "${BGreen}Updating npm globally${Color_Off}\n"
+	sudo npm i -g npm@latest
+	sleep 5
+}
+
+npmCheck() {
+	npm --version
+	if [[ $? -eq 0 ]]
+	then
+		printf "${BGreen}npm is installed updating globally${Color_Off}\n"
+		npmUpdate
+		electronCheck
+	else
+		printf "${BRed}npm is not installed, skipping update${Color_Off}\n"
+	fi
+}
+
+## If vlang is installed update it,
+## if it is not install it
+updateVlang() {
+	v --version
+	if [[ $? -eq 0 ]]
+	then
+		printf "${BGreen}Updating vlang${Color_Off}\n"
+		v up
+		sleep 5
+	else
+		git clone https://github.com/vlang/v "$HOME/.v"
+		cd "$HOME/.v"
+		make
+		
+		printf "${BGreen}Creating vlang/env script"
+		echo "#!/bin/sh" > "$HOME/.v/env"
+		echo "# vlang shell setup" >> "$HOME/.v/env"
+		echo "# affix colons on either side of $PATH to simplify matching" >> "$HOME/.v/env"
+		echo "case ":${PATH}:" in" >> "$HOME/.v/env"
+    		echo "*:"$HOME/v":*)" >> "$HOME/.v/env"
+        	echo ";;" >> "$HOME/.v/env"
+    		echo "*)" >> "$HOME/.v/env"
+        	echo "# Prepending path in case a system-installed vlang needs to be overridden" >> "$HOME/.v/env"
+        	echo "export PATH=\"$HOME/.v:$PATH\"" >> "$HOME/.v/env"
+		echo ";;" >> "$HOME/.v/env"
+		echo "esac" >> "$HOME/.v/env"
+
+		echo "source \"$HOME/.v/env\"" >> "$HOME/.bash_profile"
+		source "$HOME/.v/env"
+	fi
+}
 
 ## If Rustfmt is available this
 ## installs it if it isn't installed
@@ -60,12 +129,32 @@ outRustfmt() {
 	fi
 }
 
-rustup component list | grep rustfmt
-if [[ $? -eq 0 ]]
-then
-	inRustfmt	
-else
-	outRustfmt
-fi
+updateRust() {
+	rustup component list | grep rustfmt
+	if [[ $? -eq 0 ]]
+	then
+		inRustfmt	
+	else
+		outRustfmt
+	fi
 
-printf "${BGreen}Rust has been successfully updated${Color_Off}\n"
+	printf "${BGreen}Rust has been successfully updated${Color_Off}\n"
+}
+
+rustCheck() {
+	rustc --version
+	if [[ $? -eq 0 ]]
+	then
+		printf "${BGreen}Rust is installed updating${Color_Off}\n"
+		updateRust
+	else
+		printf "${BRed}Rust is not installed at this time${Color_Off}\n"
+		printf "${BBlue}Running the Rust installer${Color_Off}\n"
+		curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+	fi
+}
+
+yayCheck
+npmCheck
+updateVlang
+rustCheck
