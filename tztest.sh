@@ -2,24 +2,28 @@
 
 cst=-06
 ct=06
-tempTZ=$(date +%:::z | sed -r 's/[:]+/./g')
-temp2TZ=${tempTZ:1}
+tempTZ=$(date +%:::z)
+tmpTZ=${tempTZ/:/.}
+temp2TZ=${tmpTZ:1}
 tz=${temp2TZ%.*}
 tzadd=${temp2TZ##.*}
 
 tzdata() {
+	localtime=$(date +%H.%M)
 	if [[ ${tzadd:3} -eq 0 ]]
 	then
 		echo "$temp"
+		echo "${localtime} + ${temp}" | bc -l
 	else
-		echo "$temp.${tzadd:3}"
+		tdata="${temp}.${tzadd:3}"
+		echo "${tdata}"
+		echo "${localtime} + ${temp} + ${tdata}" | bc -l
 	fi
 }
 
 if [[ ${tz} -eq ${ct} ]]
 then
-	timezone=${cst}
-	echo "${timezone:1}"
+	echo "$(date +%H.%M)"
 else
 	if [[ ${tz} -gt ${cst} ]]
 	then 
