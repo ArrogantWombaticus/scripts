@@ -64,35 +64,40 @@ npmCheck() {
 ## If vlang is installed update it,
 ## if it is not install it
 updateVlang() {
-	v --version
+	FILE="$HOME/.v/env"
+	ls $HOME/.v
 	if [[ $? -eq 0 ]]
 	then
 		printf "${BGreen}Updating vlang${Color_Off}\n"
-		v up
-		sleep 5
+		v --version
+		if [[ $? -eq 0 ]]
+		then
+			v up
+			sleep 5
+		elif test -f "$FILE"
+		then
+			source "$HOME/.v/env"
+			v up
+			sleep 5
+		else
+			cp -rf "$HOME/.cargo/env" "$HOME/.v/env"
+			sed -i 's/.cargo\/bin/.v/g' "$HOME/.v/env"
+			source "$HOME/.v/env"
+			v up
+			sleep 5
+	fi
 	else
 		git clone https://github.com/vlang/v "$HOME/.v"
 		cd "$HOME/.v"
 		make
-		
-		printf "${BGreen}Creating vlang/env script"
-		echo "#!/bin/sh" > "$HOME/.v/env"
-		echo "# vlang shell setup" >> "$HOME/.v/env"
-		echo "# affix colons on either side of $PATH to simplify matching" >> "$HOME/.v/env"
-		echo "case ":${PATH}:" in" >> "$HOME/.v/env"
-    		echo "*:"$HOME/v":*)" >> "$HOME/.v/env"
-        	echo ";;" >> "$HOME/.v/env"
-    		echo "*)" >> "$HOME/.v/env"
-        	echo "# Prepending path in case a system-installed vlang needs to be overridden" >> "$HOME/.v/env"
-        	echo "export PATH=\"$HOME/.v:$PATH\"" >> "$HOME/.v/env"
-		echo ";;" >> "$HOME/.v/env"
-		echo "esac" >> "$HOME/.v/env"
-
-		echo "source \"$HOME/.v/env\"" >> "$HOME/.bash_profile"
+		cp -rf "$HOME/.cargo/env" "$HOME/.v/env"
+		sed -i 's/\.cargo\/bin/\.v/g' "$HOME/.v/env"
 		source "$HOME/.v/env"
+		sleep 5
 	fi
 }
-
+		
+		
 ## If Rustfmt is available this
 ## installs it if it isn't installed
 ## and updates Rust
